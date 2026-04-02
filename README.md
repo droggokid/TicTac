@@ -1,92 +1,102 @@
 # TicTac
 
-A multiplayer Tic Tac Toe game with WebSocket server.
+A multiplayer Tic Tac Toe game that runs entirely in the terminal. Two players connect to a shared server over WebSocket and play in real time, each from their own terminal.
 
-## Architecture
-
-- **Server** (`cmd/server`): WebSocket game server handling two-player matches
-- **TUI** (`cmd/tui`): Terminal user interface client (in development)
-- **Game Logic** (`internal/game`): Board state, move validation, win detection
-- **Transport** (`internal/transport`): WebSocket message protocol
-
-## Running the Server
-
-### Local Development
-```bash
-go run ./cmd/server
+```
+  __    __    ___  _        __   ___   ___ ___    ___      ______   ___       ______  ____   __ ______
+ |  |__|  |  /  _]| |      /  ] /   \ |   |   |  /  _]    |      | /   \     |      ||    | /  ]      |
+ |  |  |  | /  [_ | |     /  / |     || _   _ | /  [_     |      ||     |    |      | |  | /  /|      |
+ |  |  |  ||    _]| |___ /  /  |  O  ||  \_/  ||    _]    |_|  |_||  O  |    |_|  |_| |  |/  / |_|  |_|
 ```
 
-### Docker
+## How to Play
+
+### 1. Start the server
+
 ```bash
-docker build -t tictac-server:latest .
-docker run -p 8080:8080 tictac-server:latest
+go run ./cmd/server/
+# Custom port:
+go run ./cmd/server/ -addr localhost:9090
 ```
 
-### Kubernetes (Production)
-Deployed to k8s cluster in `dev` namespace. Manifests in separate homelab repo.
+### 2. Player 1 — Create a game
 
-## Connecting to the Game
-
-### Via TUI Client
 ```bash
-# Connect to server (ensure port-forward is running)
-go run ./cmd/tui/ -server 100.103.112.50:8080/game
+go run ./cmd/tui/ -server <host>:8080
 ```
 
-### Via Tailscale (for remote play)
-```bash
-# Port forward the service on your server
-kubectl port-forward -n dev svc/tictac-server 8080:8080 --address=0.0.0.0
+Select **Create Game**. A 4-letter game ID will appear on screen — share it with your friend.
 
-# Then connect with TUI from any Tailscale device
-go run ./cmd/tui/ -server 100.103.112.50:8080/game
+### 3. Player 2 — Join the game
+
+```bash
+go run ./cmd/tui/ -server <host>:8080
 ```
 
-### Manual Testing with websocat
+Select **Join Game**, type the game ID, and press Enter. Both terminals transition to the game board simultaneously.
+
+---
+
+## Controls
+
+| Key | Action |
+|-----|--------|
+| `↑` `↓` `←` `→` | Move cursor |
+| `Enter` | Place your mark |
+| `Esc` | Go back / disconnect |
+| `q` | Quit |
+
+---
+
+## Connecting to a Remote Server
+
+Point the client at any reachable host — local network, Tailscale, or a VPS:
+
 ```bash
-websocat ws://100.103.112.50:8080/game
-# or local: ws://localhost:8080/game
+go run ./cmd/tui/ -server 100.103.112.50:8080
 ```
 
-## Game Protocol
+The server is also available as a Docker image:
 
-### Create a game (Player 1)
-```json
+```bash
+docker run -p 8080:8080 ghcr.io/droggokid/tictac-server:latest
+```
+
+---
+
+## Manual Testing with websocat
+
+```bash
+websocat ws://localhost:8080/game
+
+# Create a game
 {"type":"create_game"}
-```
-Response: `{"type":"create_game","gameId":"ABCD","yourSymbol":"X",...}`
 
-### Join a game (Player 2)
-```json
+# Join a game
 {"type":"join_game","gameId":"ABCD"}
+
+# Make a move (row/col are 0-indexed)
+{"type":"make_move","row":1,"col":2}
 ```
 
-### Make a move
-```json
-{"type":"make_move","row":0,"col":1}
+---
+
+## Project Structure
+
+```
+cmd/
+  server/   — WebSocket game server
+  tui/      — Terminal UI client
+internal/
+  game/     — Board, move validation, win detection
+  server/   — WebSocket hub and game room logic
+  transport/ — Shared JSON message types
+  tui/      — gocui views and WebSocket client
 ```
 
-### Receive game state
-```json
-{
-  "type":"state_update",
-  "board":[["X","",""],["","O",""],["","",""]],
-  "currentTurn":"X"
-}
-```
+## Build
 
-## Development
-
-### Build
 ```bash
-go build ./cmd/server
+go build -o tictac-server ./cmd/server/
+go build -o tictac       ./cmd/tui/
 ```
-
-### Test
-```bash
-go test ./internal/server -v
-go test ./internal/game -v
-```
-
-### Docker Image
-Published to: `ghcr.io/droggokid/tictac-server:latest`
