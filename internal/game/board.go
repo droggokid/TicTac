@@ -80,3 +80,22 @@ func (b *Board) IsGameOver() bool {
 func (b *Board) GetBoard() [9]Symbol {
 	return b.cells
 }
+
+// WinningLine returns the three cell positions (0-8) that form the winning
+// line, or nil if there is no winner yet. Useful for highlighting in the TUI
+// and for including in the game_over broadcast.
+func (b *Board) WinningLine() []int {
+	winPatterns := [][]int{
+		{0, 1, 2}, {3, 4, 5}, {6, 7, 8},
+		{0, 3, 6}, {1, 4, 7}, {2, 5, 8},
+		{0, 4, 8}, {2, 4, 6},
+	}
+	for _, pattern := range winPatterns {
+		if b.cells[pattern[0]] != Empty &&
+			b.cells[pattern[0]] == b.cells[pattern[1]] &&
+			b.cells[pattern[1]] == b.cells[pattern[2]] {
+			return pattern
+		}
+	}
+	return nil
+}
