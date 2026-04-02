@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Go test files
+*_test.go
+
+# Binary
+server
+client
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# CI/CD
+.github
+
+# Client-side (not needed for server deployment)
+cmd/tui/
+cmd/client/
+internal/tui/
+
+# Session and temp files
+.copilot
+tmp/
+*.log
